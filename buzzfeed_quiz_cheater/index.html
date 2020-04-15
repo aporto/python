@@ -1,0 +1,131 @@
+<html>
+<head>
+<script src="brython.js"></script>
+</head>
+<body onload="brython()">
+<script type="text/python">
+#from browser import document, alert
+# bind event 'click' on button to function echo
+#def echo(ev):
+#    alert(document["zone"].value)
+#document["mybutton"].bind("click", echo)
+
+import json
+import os
+import urllib.request
+import collections
+from browser import document, alert
+
+def downloadJsonData(url):
+    print ("Fazendo o download dos dados do quiz...")
+    try:
+        response = urllib.request.urlopen(url)
+    except:
+        return None
+
+    data = response.read()      # a `bytes` object
+    text = data.decode('utf-8') # a `str`; this step can't be used if data is binary
+
+    scriptStart = text.index('{"subbuzz":{')
+    script = text[scriptStart:]
+    scriptEnd = script.index("</" + "script>")
+    script = script[:scriptEnd]
+    data = json.loads(script)
+
+    #with open('data.json', 'w') as f:
+    #    f.write(script)
+    print("Pronto!\n")
+
+    return data
+
+def main(url):
+    data = downloadJsonData(url)
+
+    if data is None:
+        print ("Erro: Não foi possivel baixar os dados do link que você passou:")
+        print(url)
+        return
+
+    if data['subbuzz']['type'] != 'personality':
+        print("Desculpe. Esse programa só funciona com testes BuzzFeed do tipo 'Personalidade'")
+        return
+
+    try:
+        hasPersonality = data['subbuzz']['questions'][0]['answers'][0]['personality_index']
+        print("Perguntas ordenadas pela note decrescente:")
+    except:
+        hasPersonality = False
+        print("Perguntas sem ordem. Quizz não tem personality index:")
+
+    highScore = []
+    for question in data['subbuzz']['questions']:
+        questionTitle = question['tile_text']
+        print("%s" % (questionTitle))
+        answers = {}
+        count = 0
+
+        # Monta a lista de respostas e depois as ordena em ordem decrescente de pontos
+        for answer in question['answers']:
+            answerTitle = answer['header'].strip()
+            if answerTitle == '':
+                answerTitle = answer['tile_text'].strip()
+
+            if hasPersonality:
+                personalityIndex = answer['personality_index']
+                answers[personalityIndex] = answerTitle
+            else:
+                answers[count] = answerTitle
+                count += 1
+
+        answers = collections.OrderedDict(sorted(answers.items(), reverse=True))
+        first = True
+        for answer in answers:
+            print("\tResposta (%d pontos): %s " % (answer, answers[answer]))
+            if first:
+                highScore.append([questionTitle, answers[answer]])
+                first = False
+
+
+    print("\nResultados, ordenados por nota decrescente:")
+    count = len(data['subbuzz']['results'])
+    for idx in range(count):
+        v=count-idx-1
+        title = data['subbuzz']['results'][v]['header']
+        print ("\t%d: %s" % (v, title))
+
+    print("\nPara tirar a maior nota, responda da seguinte forma:")
+    for question, answer in highScore:
+        print("\t%s %s" % (question, answer))       
+    
+
+alert("teste")
+
+print ("Copie e cole o endeço do teste BuzFeed na linha abaixo:")
+print ("(Use o botão direito e selecione 'Colar' no menu que vai se abrir)")
+url = 'https://www.buzzfeed.com/br/victornascimento/biscoito-corpo-delicia-biscoiteiro-nudes?origin=btm-fd'
+#url = 'https://www.buzzfeed.com/br/rafaelcapanema/quantos-por-cento-sem-vergonha-voce-e?utm_source=dynamic&fbclid=IwAR28S5CPoAvhuT-T3JEbdHJQ1c47058pn3dGQMVahTYf_AWnZCOoSYJAkOk'
+#url = input('>>')
+
+main(url)
+
+#print("")
+#print(url)
+#url = 'https://www.buzzfeed.com/br/rafaelcapanema/quantos-por-cento-sem-vergonha-voce-e?utm_source=dynamic&fbclid=IwAR28S5CPoAvhuT-T3JEbdHJQ1c47058pn3dGQMVahTYf_AWnZCOoSYJAkOk'
+
+#url = 'https://www.buzzfeed.com/br/christianzamora/monte-a-piroca-ideal-e-revelaremos-um-segredo-profundo?origin=btm-fd'
+
+
+
+#with open("data.json") as fp:
+#    data = json.load(fp)
+
+
+
+
+
+
+</script>
+<input id="zone">
+<button id="mybutton">click !</button>
+</body>
+</html>
